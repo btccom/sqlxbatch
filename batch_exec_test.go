@@ -3,7 +3,6 @@ package sqlxbatch
 import (
 	_ "github.com/go-sql-driver/mysql"
 
-	"fmt"
 	"testing"
 
 	"github.com/jmoiron/sqlx"

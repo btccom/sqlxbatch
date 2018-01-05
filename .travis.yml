@@ -1,0 +1,35 @@
+language: go
+
+dist: trusty
+sudo: false
+
+# only build master branch (and PRs)
+branches:
+  only:
+    - master
+    - develop
+
+addons:
+  apt:
+    sources:
+      - sourceline: ppa:masterminds/glide
+    packages:
+      - glide
+
+services:
+ - mysql
+
+cache:
+  directories:
+    ${TRAVIS_BUILD_DIR}/vendor
+    ${HOME}/.glide
+
+go:
+ - 1.9.x
+
+install:
+ - glide update
+ - ./tools/create-dbs.sh __test_btcwalletd_sqlxbatch `cat /proc/cpuinfo | grep processor | wc -l`
+
+script:
+ - go test
