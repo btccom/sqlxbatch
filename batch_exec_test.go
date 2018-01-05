@@ -3,15 +3,16 @@ package sqlxbatch
 import (
 	_ "github.com/go-sql-driver/mysql"
 
+	"fmt"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
-	assert "github.com/stretchr/testify/require"
+	_assert "github.com/stretchr/testify/require"
 )
 
 func TestBatchInsertSingle(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -44,7 +45,7 @@ func TestBatchInsertSingle(t *testing.T) {
 
 func TestBatchInsertSingleReuse(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -91,7 +92,7 @@ func TestBatchInsertSingleReuse(t *testing.T) {
 
 func TestBatchInsertMultiple(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -128,7 +129,7 @@ func TestBatchInsertMultiple(t *testing.T) {
 
 func TestBatchInsertMutilpleCustomTpl(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -163,7 +164,7 @@ func TestBatchInsertMutilpleCustomTpl(t *testing.T) {
 	assert.Equal("boss", rows[1].Other)
 }
 
-func testBatchUpdatePrep(t *testing.T, assert *assert.Assertions, dbTx *sqlx.Tx) {
+func testBatchUpdatePrep(t *testing.T, assert *_assert.Assertions, dbTx *sqlx.Tx) {
 	b, err := NewBatchInserter(dbTx,
 		"INSERT INTO mytable "+
 			"(id, name, other) "+
@@ -179,7 +180,7 @@ func testBatchUpdatePrep(t *testing.T, assert *assert.Assertions, dbTx *sqlx.Tx)
 
 func TestBatchUpdate(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -216,7 +217,7 @@ func TestBatchUpdate(t *testing.T) {
 
 func TestBatchUpdateWithBaseArg(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -256,7 +257,7 @@ func TestBatchUpdateWithBaseArg(t *testing.T) {
 
 func TestBaseArgMax(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -298,7 +299,7 @@ func TestBaseArgMax(t *testing.T) {
 
 func TestBatchInsertEmpty(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -320,7 +321,7 @@ func TestBatchInsertEmpty(t *testing.T) {
 
 func TestBatchInsertMultipleBatches(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -360,7 +361,7 @@ func TestBatchInsertMultipleBatches(t *testing.T) {
 
 func TestBatchInsertBadQry(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -382,7 +383,7 @@ func TestBatchInsertBadQry(t *testing.T) {
 
 func TestBatchUpdateUnsupportedCols(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	assert := _assert.New(t)
 
 	db, closeFn := initDB()
 	defer closeFn()
@@ -395,4 +396,50 @@ func TestBatchUpdateUnsupportedCols(t *testing.T) {
 		"UPDATE mytable SET other = 'nub'"+
 			"WHERE name IN(%s)", 2)
 	assert.Error(err)
+}
+
+func TestBatchInsertConcurrent(t *testing.T) {
+	t.Parallel()
+	assert := _assert.New(t)
+
+	db, closeFn := initDB()
+	defer closeFn()
+
+	b, err := NewBatchInserter(db,
+		"INSERT INTO mytable "+
+			"(id, name, other) "+
+			"VALUES %s",
+		3)
+	assert.NoError(err)
+	b.nWorkers = 8
+	b.maxSqlPlaceHolders = 2
+
+	m := 1000
+
+	expectedRows := make(map[string]string, m)
+	for i := 0; i < m; i++ {
+		name := fmt.Sprintf("name%d", i)
+		other := fmt.Sprintf("other%d", i)
+
+		b.AddN(nil, name, other)
+		expectedRows[name] = other
+	}
+
+	err = b.BatchExec()
+	assert.NoError(err)
+
+	rows := make([]myTableRow, 0)
+	err = db.Select(&rows, "SELECT * FROM mytable")
+	assert.NoError(err)
+
+	assert.Equal(m, len(rows))
+
+	for _, row := range rows {
+		_, expectedRowExists := expectedRows[row.Name]
+		assert.True(expectedRowExists)
+		assert.Equal(row.Other, expectedRows[row.Name])
+
+		delete(expectedRows, row.Name)
+	}
+	assert.Equal(0, len(expectedRows))
 }

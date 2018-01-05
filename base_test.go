@@ -15,6 +15,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"github.com/juju/loggo"
 	"github.com/pkg/errors"
 )
 
@@ -49,6 +50,8 @@ func init() {
 	for i := 0; i < availableDBCount; i++ {
 		dbs[i] = &TestDB{dbName: fmt.Sprintf(testDBName, i), inUse: false}
 	}
+
+	loggo.ConfigureLoggers("<root>=DEBUG")
 }
 
 func makeTimestamp() int {
