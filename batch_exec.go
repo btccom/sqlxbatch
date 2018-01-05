@@ -63,26 +63,31 @@ func NewBatchInserter(dbTx Execer, insertQuery string, cols int) (*BatchExecer, 
 }
 
 func NewBatchExecer(dbTx Execer, baseQuery string, cols int, tplValueString string) (*BatchExecer, error) {
-	batches := make([]*batch, 0)
-	currentBatch := batch{
-		rows: make([][]interface{}, 0),
-	}
-
-	batches = append(batches, &currentBatch)
-
-	n := BatchExecer{
+	n := &BatchExecer{
 		dbTx:           dbTx,
 		baseQuery:      baseQuery,
 		cols:           cols,
 		tplValueString: tplValueString,
-		batches:        batches,
-		currentBatch:   &currentBatch,
 
 		expectedBaseArgs:   10,
 		maxSqlPlaceHolders: MAX_SQL_PLACEHOLDERS,
 	}
 
-	return &n, nil
+	n.reset()
+
+	return n, nil
+}
+
+func (b *BatchExecer) reset() {
+	batches := make([]*batch, 0)
+	currentBatch := &batch{
+		rows: make([][]interface{}, 0),
+	}
+
+	batches = append(batches, currentBatch)
+
+	b.batches = batches
+	b.currentBatch = currentBatch
 }
 
 func (b *BatchExecer) insertsPerChuck() int {
@@ -136,6 +141,7 @@ func (b *BatchExecer) Add(vals []interface{}) {
 
 func (b *BatchExecer) BatchExec() error {
 	b.lock.Lock()
+	defer func() { b.reset() }()
 	defer b.lock.Unlock()
 
 	for idx, batch := range b.batches {
