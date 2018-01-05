@@ -91,10 +91,10 @@ func initDB() (*sqlx.DB, func()) {
 		panic(err)
 	}
 
-	mysqlHost := getenv("GENERIC_DATABASE_HOST", "127.0.0.1")
-	mysqlPort := getenv("GENERIC_DATABASE_PORT", "3306")
-	mysqlUser := getenv("GENERIC_DATABASE_USER", "root")
-	mysqlPass := getenv("GENERIC_DATABASE_PASSWORD", "root")
+	mysqlHost := getenv("DATABASE_HOST", "127.0.0.1")
+	mysqlPort := getenv("DATABASE_PORT", "3306")
+	mysqlUser := getenv("DATABASE_USER", "root")
+	mysqlPass := getenv("DATABASE_PASSWORD", "root")
 
 	db := sqlx.MustConnect("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?strict=true&multiStatements=true", mysqlUser, mysqlPass, mysqlHost, mysqlPort, testDB.dbName))
 

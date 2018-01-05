@@ -30,7 +30,7 @@ go:
 install:
  - glide update
  - ./tools/create-dbs.sh __test_btcwalletd_sqlxbatch `cat /proc/cpuinfo | grep processor | wc -l`
- - printf "GENERIC_DATABASE_PASSWORD=" > .env
+ - printf "DATABASE_PASSWORD=" > .env
 
 script:
  - go test
