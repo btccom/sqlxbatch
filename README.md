@@ -5,6 +5,10 @@ Create a batcher, add values and then let it batch insert or update.
 
 The package will take into account the fact that there's a limit to how many sql placeholders you're allowed to have in 1 prepared statement.
 
+Dependancies
+------------
+Dependancies are managed with glide, enjoy ;-)
+
 Usage
 -----
 
@@ -110,3 +114,11 @@ will execute:
 ```sql
 INSERT INTO mytable (id, name, other) VALUES (NULL, "roobs", "dev"), (NULL, "bb", "boss");
 ```
+
+Testing
+-------
+To run the tests you need to create a test DB for the tests to use, 
+so that tests can run in parallel you need N test DBs equal to your amount of cores.  
+You can easily create these with ```./tools/create-dbs.sh __test_btcwalletd_sqlxbatch `cat /proc/cpuinfo | grep processor | wc -l````
+
+Running tests simply works with `go test`.
