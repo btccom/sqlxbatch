@@ -42,6 +42,53 @@ func TestBatchInsertSingle(t *testing.T) {
 	assert.Equal("dev", rows[0].Other)
 }
 
+func TestBatchInsertSingleReuse(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	db, closeFn := initDB()
+	defer closeFn()
+
+	dbTx, err := db.Beginx()
+	assert.NoError(err)
+	defer dbTx.Rollback()
+
+	b, err := NewBatchInserter(dbTx,
+		"INSERT INTO mytable "+
+			"(id, name, other) "+
+			"VALUES %s",
+		3)
+	assert.NoError(err)
+
+	b.AddN(nil, "roobs", "dev")
+
+	err = b.BatchExec()
+	assert.NoError(err)
+
+	rows := make([]myTableRow, 0)
+	err = dbTx.Select(&rows, "SELECT * FROM mytable")
+	assert.NoError(err)
+
+	assert.Equal(1, len(rows))
+	assert.Equal(1, rows[0].Id)
+	assert.Equal("roobs", rows[0].Name)
+	assert.Equal("dev", rows[0].Other)
+
+	b.AddN(nil, "roobs", "dev")
+
+	err = b.BatchExec()
+	assert.NoError(err)
+
+	rows = make([]myTableRow, 0)
+	err = dbTx.Select(&rows, "SELECT * FROM mytable")
+	assert.NoError(err)
+
+	assert.Equal(2, len(rows))
+	assert.Equal(2, rows[1].Id)
+	assert.Equal("roobs", rows[1].Name)
+	assert.Equal("dev", rows[1].Other)
+}
+
 func TestBatchInsertMultiple(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
