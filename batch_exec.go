@@ -47,6 +47,7 @@ type BatchExecer struct {
 	lock         sync.Mutex
 	batches      []*workBatch
 	currentBatch *workBatch
+	records      int
 
 	expectedBaseArgs   int
 	maxSqlPlaceHolders int
@@ -90,6 +91,7 @@ func (b *BatchExecer) reset() {
 
 	b.batches = batches
 	b.currentBatch = currentBatch
+	b.records = 0
 }
 
 func (b *BatchExecer) insertsPerChuck() int {
@@ -101,6 +103,16 @@ func (b *BatchExecer) UseNWorkers(nWorkers int) {
 }
 
 func (b *BatchExecer) Count() int {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	return b.records
+}
+
+func (b *BatchExecer) calcCount() int {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
 	sum := 0
 
 	for _, batch := range b.batches {
@@ -125,14 +137,15 @@ func (b *BatchExecer) AddBaseArg(val interface{}, position BASE_ARG_POSITION) er
 	return nil
 }
 
-func (b *BatchExecer) AddN(vals ...interface{}) {
-	b.Add(vals)
+func (b *BatchExecer) AddN(vals ...interface{}) int {
+	return b.Add(vals)
 }
 
-func (b *BatchExecer) Add(vals []interface{}) {
+func (b *BatchExecer) Add(vals []interface{}) int {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
+	b.records++
 	b.currentBatch.rows = append(b.currentBatch.rows, vals)
 
 	if len(b.currentBatch.rows) >= b.insertsPerChuck() {
@@ -143,7 +156,10 @@ func (b *BatchExecer) Add(vals []interface{}) {
 		b.batches = append(b.batches, &newBatch)
 		b.currentBatch = &newBatch
 	}
+
+	return b.records
 }
+
 func (b *BatchExecer) execBatch(batch *workBatch) error {
 	if len(batch.rows) > 0 {
 		valueStrings := make([]string, 0, len(batch.rows))
