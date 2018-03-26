@@ -16,7 +16,7 @@ import (
 type BASE_ARG_POSITION int8
 
 const (
-	MAX_SQL_PLACEHOLDERS int               = 65535
+	MAX_SQL_PLACEHOLDERS int               = 63435
 	BASE_ARG_BEFORE      BASE_ARG_POSITION = -1
 	BASE_ARG_AFTER       BASE_ARG_POSITION = 11
 )
