@@ -262,7 +262,7 @@ func (b *BatchExecer) BatchExec() error {
 		// check of result and return if err
 		case err := <-resChan:
 			if err != nil {
-				return err
+				return errors.Wrap(err, "BatchExec")
 			}
 
 		// check for workers who are done
