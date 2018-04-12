@@ -122,6 +122,10 @@ func (b *BatchExecer) calcCount() int {
 	return sum
 }
 
+func (b *BatchExecer) WillCompleteBatch(nMoreVals int) bool {
+	return len(b.currentBatch.rows)+nMoreVals >= b.insertsPerChuck()
+}
+
 func (b *BatchExecer) AddBaseArg(val interface{}, position BASE_ARG_POSITION) error {
 	arg := baseArg{
 		val:      val,
